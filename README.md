@@ -12,7 +12,7 @@ This repo documents the journey, from first-principles research through the fina
 
 ## What's here now
 
-A structured research trail under [`eddie/`](eddie/), produced with the [EDDIE](https://github.com/mariozechner/pi-coding-agent) methodology (Explore → Define → Design → Implement → Evaluate).
+A structured research trail under [`eddie/`](eddie/), produced with the [EDDIE](https://github.com/m3m0ng/eddie) methodology (Explore → Define → Design → Implement → Evaluate).
 
 | Run | What it covers | Status |
 |-----|----------------|--------|
