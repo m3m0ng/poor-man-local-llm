@@ -1,0 +1,5 @@
+.claude/
+*.log
+.env
+.env.*
+secrets/

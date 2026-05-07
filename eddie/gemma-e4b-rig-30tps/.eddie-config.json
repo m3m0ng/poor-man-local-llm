@@ -1,0 +1,16 @@
+{
+  "run_name": "gemma-e4b-rig-30tps",
+  "project_type": "research-doc",
+  "active_phases": ["explore", "define", "design"],
+  "current_phase": "design",
+  "phase_status": {
+    "explore": "done",
+    "define": "done",
+    "design": "done",
+    "implement": "skipped",
+    "evaluate": "skipped"
+  },
+  "created_at": "2026-05-07",
+  "references_prior_runs": [],
+  "supersedes": []
+}
