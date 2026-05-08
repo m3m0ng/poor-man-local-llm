@@ -1,0 +1,14 @@
+{
+  "run_name": "apollolake-e4b-reality-check",
+  "project_type": "research-doc",
+  "active_phases": ["explore", "define", "design"],
+  "current_phase": "explore",
+  "phase_status": {
+    "explore": "done",
+    "define": "done",
+    "design": "done"
+  },
+  "created_at": "2026-05-08",
+  "references_prior_runs": ["gemma-e4b-rig-30tps"],
+  "supersedes": []
+}

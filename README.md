@@ -4,7 +4,7 @@ Running modern multimodal LLMs on hardware nobody wants anymore.
 
 ## The story
 
-I had a ZimaBlade 7700 lying around (Celeron J4125, 16 GB RAM, no GPU, 32 GB eMMC). I wanted to wire a local LLM into my n8n workflows for privacy-sensitive documents — bank statements, personal records, anything I won't send to a hosted API.
+I had a ZimaBlade 7700 lying around (Intel Apollo Lake N3450/J3455/E3950, 16 GB RAM, no GPU, 32 GB eMMC). I wanted to wire a local LLM into my n8n workflows for privacy-sensitive documents — bank statements, personal records, anything I won't send to a hosted API.
 
 The question: can a $0 hand-me-down mini-PC handle a 2026-level model like **Gemma 4 E4B**? Or is this a fool's errand?
 
@@ -16,7 +16,8 @@ A structured research trail under [`eddie/`](eddie/), produced with the [EDDIE](
 
 | Run | What it covers | Status |
 |-----|----------------|--------|
-| [`gemma-e4b-rig-30tps`](eddie/gemma-e4b-rig-30tps/) | Hardware capability assessment + setup guide for Gemma 4 E4B on the ZimaBlade 7700 | Design complete, implementation pending |
+| [`apollolake-e4b-reality-check`](eddie/apollolake-e4b-reality-check/) | Current plan — hardware assessment + setup guide for Apollo Lake ZimaBlade 7700 | Complete |
+| [`gemma-e4b-rig-30tps`](eddie/gemma-e4b-rig-30tps/) | Original plan (J4125-based, superseded by corrected hardware specs) | Archived |
 
 ## Navigating the `eddie/` folder
 
@@ -46,9 +47,6 @@ eddie/
 ## What's coming next
 
 - [ ] Execute the build on the ZimaBlade 7700
-- [ ] Add real benchmark numbers (tok/s, RAM usage, thermal behavior, cold-start latency)
-- [ ] Add n8n connectivity verification and sample workflow
-- [ ] Go/no-go verdict with honest limits
-- [ ] (If needed) Second EDDIE run for a cheap used-GPU upgrade path
-
-Results will be added as new EDDIE runs or appended to existing ones. The `index.md` stays the source of truth for project state.
+- [ ] Run benchmarks for E4B and fallback model
+- [ ] Wire n8n connectivity and test end-to-end
+- [ ] Go/no-go verdict with real numbers
