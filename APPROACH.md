@@ -16,6 +16,7 @@ Running a local LLM on a **ZimaBlade 7700 (Intel Apollo Lake: N3450/J3455/E3950)
 - **No AVX/AVX2** — SSE4.2 only
 - **16GB RAM**, **32GB eMMC**, no GPU
 - **Estimated performance:** 0.5–1.5 tok/s on 4B model, 1.5–4.5 tok/s on 1.5–2.7B models
+- **Measured:** Phi-2 (`phi:2.7b`) = **2.69 tok/s** generation — see [`RESULTS.md`](RESULTS.md)
 - **Ollama ≥ v0.5.2 required** (no-AVX support)
 
 ## Anti-Goals (locked)
@@ -89,7 +90,7 @@ If switching:
 
 ```bash
 ollama rm gemma4:e4b
-ollama pull phi2:2.7b    # recommended fallback (~1.6GB)
+ollama pull phi:2.7b     # recommended fallback (~1.6GB)
 # or: ollama pull qwen2.5:1.5b  # alternative (~1.0GB)
 ```
 
@@ -158,13 +159,14 @@ The user designs their own n8n workflow — this plan covers only connectivity.
 
 | Model | Size | Est. tok/s | Notes |
 |-------|------|-----------|-------|
-| **Phi-2 2.7B** (recommended) | ~1.6 GB | 1.5–4.5 | Best extraction quality, instruction-following |
+| **Phi-2 2.7B** (`phi:2.7b`, recommended) | ~1.6 GB | **2.69 measured** | Best extraction quality, instruction-following |
 | Qwen2.5-1.5B | ~1.0 GB | 2–5 | Faster, smaller, multilingual |
 | Gemma 2B | ~1.4 GB | 1.5–4 | Google-trained, good text understanding |
 
 ## Open Risks
 
-- **No verified Apollo Lake benchmarks exist** — tok/s are estimates. Real-world testing needed.
+- ~~**No verified Apollo Lake benchmarks exist** — tok/s are estimates.~~ Phi-2
+  now measured at 2.69 tok/s ([`RESULTS.md`](RESULTS.md)); E4B still untested.
 - **Thermal throttling** — passively cooled ZimaBlade may slow down under sustained inference.
 - **Cold-start latency** — loading model from eMMC takes 30–60 seconds on first call after Ollama starts.
 - **32GB eMMC is tight** — document `ollama rm` cleanup flow if space runs out.
