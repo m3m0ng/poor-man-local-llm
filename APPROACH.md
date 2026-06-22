@@ -16,7 +16,7 @@ Running a local LLM on a **ZimaBlade 7700 (Intel Apollo Lake: N3450/J3455/E3950)
 - **No AVX/AVX2** — SSE4.2 only
 - **16GB RAM**, **32GB eMMC**, no GPU
 - **Estimated performance:** 0.5–1.5 tok/s on 4B model, 1.5–4.5 tok/s on 1.5–2.7B models
-- **Measured:** Phi-2 (`phi:2.7b`) = **2.69 tok/s**, Gemma 4 E2B (`gemma4:e2b`) = **1.91 tok/s** — see [`RESULTS.md`](RESULTS.md)
+- **Measured:** Phi-2 (`phi:2.7b`) = **2.69 tok/s**, Qwen3 (`qwen3:1.7b`) = **2.32 tok/s**, Gemma 4 E2B (`gemma4:e2b`) = **1.91 tok/s** — see [`RESULTS.md`](RESULTS.md)
 - **Ollama ≥ v0.5.2 required** (no-AVX support)
 
 ## Anti-Goals (locked)
@@ -160,8 +160,8 @@ The user designs their own n8n workflow — this plan covers only connectivity.
 | Model | Size | Est. tok/s | Notes |
 |-------|------|-----------|-------|
 | **Gemma 4 E2B** (`gemma4:e2b`) | ~2 GB | **1.91 measured** | Highest quality, reasons before answering; 21s cold load |
-| **Phi-2 2.7B** (`phi:2.7b`) | ~1.6 GB | **2.69 measured** | Faster; good instruction-following |
-| Qwen2.5-1.5B | ~1.0 GB | 2–5 | Faster, smaller, multilingual |
+| **Qwen3 1.7B** (`qwen3:1.7b`) | ~1.4 GB | **2.32 measured** | Best balance — reasons, fast-ish, 2.5s load |
+| **Phi-2 2.7B** (`phi:2.7b`) | ~1.6 GB | **2.69 measured** | Fastest; good instruction-following, no reasoning |
 | Gemma 2B | ~1.4 GB | 1.5–4 | Google-trained, good text understanding |
 
 ## Open Risks

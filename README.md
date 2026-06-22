@@ -27,10 +27,10 @@ The plan was produced using the [EDDIE](https://github.com/m3m0ng/eddie) methodo
 
 → **[`RESULTS.md`](RESULTS.md)** — real-world numbers measured on the ZimaBlade.
 
-Two models measured: **Phi-2 (`phi:2.7b`) at 2.69 tok/s** and **Gemma 4 E2B
-(`gemma4:e2b`) at 1.91 tok/s** (slower but higher quality). Both viable for a
-monthly unattended batch job. The headline E4B benchmark and n8n test are
-still pending.
+Three models measured, all viable for a monthly unattended batch job:
+**Phi-2 (`phi:2.7b`) 2.69 tok/s**, **Qwen3 (`qwen3:1.7b`) 2.32 tok/s**, and
+**Gemma 4 E2B (`gemma4:e2b`) 1.91 tok/s** (slowest but highest quality). The
+headline E4B benchmark and n8n test are still pending.
 
 ## What's coming next
 
