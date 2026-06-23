@@ -10,13 +10,22 @@
 
 Running a local LLM on a **ZimaBlade 7700 (Intel Apollo Lake: N3450/J3455/E3950)** to extract structured data from bank statements once per month via an automated n8n workflow. Privacy-sensitive documents cannot go to a hosted API.
 
-## Hardware Reality
+## Hardware Reality (confirmed on the box)
 
-- **CPU:** 4C4T, 1.1–1.6 GHz base, 2.0–2.3 GHz burst, 2MB L2
-- **No AVX/AVX2** — SSE4.2 only
-- **16GB RAM**, **32GB eMMC**, no GPU
-- **Estimated performance:** 0.5–1.5 tok/s on 4B model, 1.5–4.5 tok/s on 1.5–2.7B models
-- **Ollama ≥ v0.5.2 required** (no-AVX support)
+- **CPU:** Intel Celeron **J3455** (Apollo Lake / Goldmont), 4C4T, 1.5 GHz base / 2.3 GHz burst (800 MHz idle), ~4 MiB L2 (2 MiB × 2 modules)
+- **No AVX/AVX2 — confirmed:** flags top out at `sse4_2` (has AES-NI + SHA-NI, no AVX)
+- **RAM:** 16 GB DDR3L-1333, **single channel (~10.6 GB/s)** — this bandwidth is the real bottleneck for CPU inference
+- **Storage:** 32 GB eMMC (29 GB usable), non-rotational; **currently 83% full, ~4.3 GB free** with E4B installed
+- **No GPU**
+- **OS:** Debian 13 (trixie), kernel 6.12
+- **Ollama:** 0.23.2 (satisfies the ≥ 0.5.2 no-AVX requirement)
+- **Estimated performance:** 0.5–1.5 tok/s on 4B, 1.5–4.5 tok/s on 1.5–2.7B
+- **Measured:** Gemma 4 E4B = **1.07**, E2B = **1.91**, Qwen3 1.7B = **2.32**, Phi-2 = **2.69** tok/s — see [`RESULTS.md`](RESULTS.md)
+
+> **Why the speeds land where they do:** CPU LLM inference is memory-bandwidth
+> bound. At ~10.6 GB/s single-channel, throughput ≈ bandwidth ÷ model size.
+> E4B (9.6 GB) → ~1.1 tok/s predicted vs **1.07 measured** — the bandwidth
+> ceiling, not the clock speed, is what caps this box.
 
 ## Anti-Goals (locked)
 
@@ -65,7 +74,8 @@ df -h ~  # check ≥ 10GB free
 ollama pull gemma4:e4b
 ```
 
-E4B is ~5GB at Q4_K_M. Verify it works with a smoke test.
+E4B pulls as **~9.6 GB** (measured — larger than a typical Q4_K_M 4B; budget
+disk accordingly). It fits in 16 GB RAM with headroom. Verify with a smoke test.
 
 ### 5. Benchmark
 
@@ -89,7 +99,7 @@ If switching:
 
 ```bash
 ollama rm gemma4:e4b
-ollama pull phi2:2.7b    # recommended fallback (~1.6GB)
+ollama pull phi:2.7b     # recommended fallback (~1.6GB)
 # or: ollama pull qwen2.5:1.5b  # alternative (~1.0GB)
 ```
 
@@ -158,16 +168,20 @@ The user designs their own n8n workflow — this plan covers only connectivity.
 
 | Model | Size | Est. tok/s | Notes |
 |-------|------|-----------|-------|
-| **Phi-2 2.7B** (recommended) | ~1.6 GB | 1.5–4.5 | Best extraction quality, instruction-following |
-| Qwen2.5-1.5B | ~1.0 GB | 2–5 | Faster, smaller, multilingual |
+| **Gemma 4 E2B** (`gemma4:e2b`) | ~2 GB | **1.91 measured** | Highest quality, reasons before answering; 21s cold load |
+| **Qwen3 1.7B** (`qwen3:1.7b`) | ~1.4 GB | **2.32 measured** | Best balance — reasons, fast-ish, 2.5s load |
+| **Phi-2 2.7B** (`phi:2.7b`) | ~1.6 GB | **2.69 measured** | Fastest; good instruction-following, no reasoning |
 | Gemma 2B | ~1.4 GB | 1.5–4 | Google-trained, good text understanding |
 
 ## Open Risks
 
-- **No verified Apollo Lake benchmarks exist** — tok/s are estimates. Real-world testing needed.
-- **Thermal throttling** — passively cooled ZimaBlade may slow down under sustained inference.
-- **Cold-start latency** — loading model from eMMC takes 30–60 seconds on first call after Ollama starts.
-- **32GB eMMC is tight** — document `ollama rm` cleanup flow if space runs out.
+- ~~**No verified Apollo Lake benchmarks exist** — tok/s are estimates.~~ **Resolved:**
+  all four models measured on the J3455 ([`RESULTS.md`](RESULTS.md)).
+- **Thermal throttling** — passively cooled ZimaBlade may slow down under sustained inference. Still unmeasured.
+- **Cold-start latency** — confirmed: loading from eMMC took **21–29s** (E2B 21.1s, E4B 28.8s).
+- **32GB eMMC is tight — confirmed real:** only **4.3 GB free** with E4B (9.6 GB) installed,
+  which already forced removing `phi` and `gemma4:e2b`. You can hold E4B **or** a couple of
+  small models, not both. Keep `ollama rm` in the loop.
 - **No Ollama auth** — firewall restriction is critical for LAN binding.
 
 ## Files
