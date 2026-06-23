@@ -4,7 +4,7 @@ Running modern multimodal LLMs on hardware nobody wants anymore.
 
 ## The story
 
-I had a ZimaBlade 7700 lying around (Intel Apollo Lake N3450/J3455/E3950, 16 GB RAM, no GPU, 32 GB eMMC). I wanted to wire a local LLM into my n8n workflows for privacy-sensitive documents — bank statements, personal records, anything I won't send to a hosted API.
+I had a ZimaBlade 7700 lying around (Intel Celeron J3455 / Apollo Lake, no AVX, 16 GB DDR3L, no GPU, 32 GB eMMC). I wanted to wire a local LLM into my n8n workflows for privacy-sensitive documents — bank statements, personal records, anything I won't send to a hosted API.
 
 The question: can a $0 hand-me-down mini-PC handle a 2026-level model like **Gemma 4 E4B**? Or is this a fool's errand?
 

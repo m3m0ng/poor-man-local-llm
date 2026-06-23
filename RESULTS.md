@@ -6,8 +6,9 @@
 
 ## Test rig
 
-- **Host:** ZimaBlade 7700 (Intel Apollo Lake, no AVX/AVX2, no GPU, 16 GB RAM)
-- **Runtime:** Ollama (CPU runner)
+- **Host:** ZimaBlade 7700 — Intel Celeron **J3455** (Apollo Lake, 4C4T, 2.3 GHz burst, no AVX, SSE4.2 only), **16 GB DDR3L-1333 single-channel** (~10.6 GB/s), 32 GB eMMC (29 GB usable), no GPU
+- **OS / runtime:** Debian 13 (trixie), kernel 6.12; Ollama 0.23.2 (CPU runner)
+- **Note:** CPU inference here is memory-bandwidth bound — at ~10.6 GB/s, tok/s ≈ bandwidth ÷ model size (E4B 9.6 GB → ~1.1 predicted vs 1.07 measured)
 
 ## Benchmarks
 
