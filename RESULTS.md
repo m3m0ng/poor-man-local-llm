@@ -110,17 +110,47 @@ phase and sophisticated vocabulary.
 but fallback recommended." At ~9 minutes for a short response, E4B is
 **batch-only — never interactive**.
 
+### Qwen3 0.6B (`qwen3:0.6b`) — tiny model ✅ tested
+
+Prompt: `"Write a 200 word essay about energy efficiency"` (run with `ollama run qwen3:0.6b --verbose`)
+
+| Metric | Value |
+|--------|-------|
+| **Generation rate (eval)** | **5.13 tok/s** |
+| Prompt eval rate | 9.97 tok/s |
+| Eval count | 318 tokens |
+| Eval duration | 1m 2.0s |
+| Prompt eval count | 22 tokens |
+| Prompt eval duration | 2.21s |
+| Load duration | 5.07s |
+| Total duration | 1m 9.8s |
+
+**Quality:** Coherent and on-topic, hit the 200-word target — impressive for a
+0.6B model — but noticeably thinner than the larger models (less nuance, more
+generic). It still ran a reasoning phase before answering.
+
+**Decision gate:** 5.13 tok/s is the fastest measured — 2× the next model — so
+firmly in the `> 2` "keep" band on speed. The real question is whether 0.6B is
+*accurate* enough for field extraction; defer to the accuracy eval (#4).
+
+**Bandwidth note:** at 522 MB the bandwidth ceiling would be ~20 tok/s; actual
+5.13 confirms small models are compute/overhead-bound, not bandwidth-bound on
+this CPU.
+
 ## Speed vs. quality (measured)
 
 | Model | tok/s | Quality | Reasons? | Cold load | Gate |
 |-------|-------|---------|----------|-----------|------|
+| Qwen3 `qwen3:0.6b` | 5.13 | basic | yes | 5.1s | keep (speed) |
 | Phi-2 `phi:2.7b` | 2.69 | good | no | (warm) | keep |
 | Qwen3 `qwen3:1.7b` | 2.32 | good | yes | 2.5s | keep |
 | Gemma 4 E2B `gemma4:e2b` | 1.91 | very good | yes | 21.1s | try/fallback |
 | Gemma 4 E4B `gemma4:e4b` | 1.07 | best | yes | 28.8s | try/fallback |
 
-Clear speed/quality gradient: E4B is best quality but ~2.5× slower than Phi-2.
-Qwen3 1.7B remains the best all-round balance (reasons, fast-ish, light load).
+Clear speed/quality gradient: E4B is best quality but ~5× slower than the
+0.6B. Qwen3 0.6B is the speed champion (5.13 tok/s, 2× the next) but quality
+is only "basic" — accuracy on real extraction is the open question (#4). Qwen3
+1.7B remains the best all-round balance for general use.
 
 ## Open items still pending
 
