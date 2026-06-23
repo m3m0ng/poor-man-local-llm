@@ -16,7 +16,7 @@ Running a local LLM on a **ZimaBlade 7700 (Intel Apollo Lake: N3450/J3455/E3950)
 - **No AVX/AVX2** — SSE4.2 only
 - **16GB RAM**, **32GB eMMC**, no GPU
 - **Estimated performance:** 0.5–1.5 tok/s on 4B model, 1.5–4.5 tok/s on 1.5–2.7B models
-- **Measured:** Phi-2 (`phi:2.7b`) = **2.69 tok/s**, Qwen3 (`qwen3:1.7b`) = **2.32 tok/s**, Gemma 4 E2B (`gemma4:e2b`) = **1.91 tok/s** — see [`RESULTS.md`](RESULTS.md)
+- **Measured:** Gemma 4 E4B = **1.07**, E2B = **1.91**, Qwen3 1.7B = **2.32**, Phi-2 = **2.69** tok/s — see [`RESULTS.md`](RESULTS.md)
 - **Ollama ≥ v0.5.2 required** (no-AVX support)
 
 ## Anti-Goals (locked)

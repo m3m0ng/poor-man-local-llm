@@ -27,14 +27,23 @@ The plan was produced using the [EDDIE](https://github.com/m3m0ng/eddie) methodo
 
 → **[`RESULTS.md`](RESULTS.md)** — real-world numbers measured on the ZimaBlade.
 
-Three models measured, all viable for a monthly unattended batch job:
-**Phi-2 (`phi:2.7b`) 2.69 tok/s**, **Qwen3 (`qwen3:1.7b`) 2.32 tok/s**, and
-**Gemma 4 E2B (`gemma4:e2b`) 1.91 tok/s** (slowest but highest quality). The
-headline E4B benchmark and n8n test are still pending.
+**Verdict: yes — a $0 Apollo Lake box can run a 2026-level 4B model.** Gemma 4
+E4B fits in 16 GB and runs at **1.07 tok/s** (best quality, batch-only). Four
+models measured, all viable for a monthly unattended batch job:
+
+| Model | tok/s | Quality |
+|-------|-------|---------|
+| Gemma 4 E4B `gemma4:e4b` | 1.07 | best |
+| Gemma 4 E2B `gemma4:e2b` | 1.91 | very good |
+| Qwen3 `qwen3:1.7b` | 2.32 | good (best balance) |
+| Phi-2 `phi:2.7b` | 2.69 | good (fastest) |
+
+GO for the monthly batch use case; not for interactive use. n8n end-to-end test
+still pending.
 
 ## What's coming next
 
-- [x] Execute the build on the ZimaBlade 7700 (Ollama up, Phi-2 running)
-- [ ] Run benchmarks for E4B and fallback model (Phi-2 + Gemma 4 E2B done; E4B pending)
+- [x] Execute the build on the ZimaBlade 7700 (Ollama up, models running)
+- [x] Run benchmarks for E4B and fallback models (E4B, E2B, Qwen3, Phi-2 all measured)
 - [ ] Wire n8n connectivity and test end-to-end
-- [ ] Go/no-go verdict with real numbers
+- [x] Go/no-go verdict with real numbers — **GO for monthly batch** (see [`RESULTS.md`](RESULTS.md))

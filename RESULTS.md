@@ -82,9 +82,32 @@ the plan originally listed.
 ground: faster than Gemma 4 E2B, reasons before answering (unlike Phi-2), and a
 smaller footprint.
 
-### Gemma 4 E4B (`gemma4:e4b`) — primary candidate ⏳ pending
+### Gemma 4 E4B (`gemma4:e4b`) — primary candidate ✅ tested
 
-Not yet benchmarked on hardware. Expect below E2B's 1.91 tok/s.
+Prompt: `"Write a 200 word essay about energy efficiency"` (run with `ollama run gemma4:e4b --verbose`)
+
+| Metric | Value |
+|--------|-------|
+| **Generation rate (eval)** | **1.07 tok/s** |
+| Prompt eval rate | 1.63 tok/s |
+| Eval count | 528 tokens |
+| Eval duration | 8m 11.7s |
+| Prompt eval count | 27 tokens |
+| Prompt eval duration | 16.59s |
+| Load duration | 28.8s (cold load from eMMC) |
+| Total duration | 8m 58.9s |
+
+**It runs.** E4B fits and executes in 16 GB on Apollo Lake with no GPU and no
+AVX — answering the project's founding question. Output quality was the best of
+all four models: a polished, well-structured essay with a visible reasoning
+phase and sophisticated vocabulary.
+
+**vs. estimate:** APPROACH.md estimated 0.5–1.5 tok/s for a 4B model. Measured
+1.07 tok/s — the estimate was accurate.
+
+**Decision gate:** 1.07 tok/s is in the `1–2` band (near the `<1` edge) → "try,
+but fallback recommended." At ~9 minutes for a short response, E4B is
+**batch-only — never interactive**.
 
 ## Speed vs. quality (measured)
 
@@ -92,35 +115,43 @@ Not yet benchmarked on hardware. Expect below E2B's 1.91 tok/s.
 |-------|-------|---------|----------|-----------|------|
 | Phi-2 `phi:2.7b` | 2.69 | good | no | (warm) | keep |
 | Qwen3 `qwen3:1.7b` | 2.32 | good | yes | 2.5s | keep |
-| Gemma 4 E2B `gemma4:e2b` | 1.91 | best | yes | 21.1s | try/fallback |
+| Gemma 4 E2B `gemma4:e2b` | 1.91 | very good | yes | 21.1s | try/fallback |
+| Gemma 4 E4B `gemma4:e4b` | 1.07 | best | yes | 28.8s | try/fallback |
 
-For unattended monthly batch extraction all three are workable. Gemma 4 E2B has
-the highest quality but is slowest with the heaviest load; Qwen3 1.7B is the
-best balance (reasons, fast-ish, light); Phi-2 is fastest but doesn't reason.
+Clear speed/quality gradient: E4B is best quality but ~2.5× slower than Phi-2.
+Qwen3 1.7B remains the best all-round balance (reasons, fast-ish, light load).
 
 ## Open items still pending
 
-- [ ] Benchmark Gemma 4 E4B on the ZimaBlade (does it fit/run in 16 GB? tok/s?)
-- [x] Measure cold-load latency — Gemma 4 E2B loaded from eMMC in **21.1s**
+- [x] Benchmark Gemma 4 E4B on the ZimaBlade — **runs at 1.07 tok/s, fits in 16 GB**
+- [x] Measure cold-load latency — E2B 21.1s, E4B 28.8s from eMMC
 - [ ] Observe thermal behavior under sustained back-to-back inference
 - [ ] End-to-end n8n bank-statement extraction test
 
-## Verdict (interim)
+## Verdict
 
-For the actual job — **monthly, unattended, batch** extraction of structured
-fields from bank statements — speeds of 1.9–2.7 tok/s are slow but workable.
-A typical extraction output is a few hundred tokens; at these rates that's a
-few minutes per statement plus model load, which is fine for a once-a-month
-job that nobody waits on.
+**The founding question is answered: yes, a $0 hand-me-down Apollo Lake box
+(no GPU, no AVX, 16 GB RAM) can run a 2026-level 4B model.** Gemma 4 E4B fits
+in memory and produces the best-quality output of everything tested — it is
+simply slow (1.07 tok/s, ~9 min for a 200-word response).
 
-**Three viable models on the ZimaBlade**, all clearing the usability bar:
-- **Gemma 4 E2B** — highest quality, slowest (1.91 tok/s), 21s load
-- **Qwen3 1.7B** — best balance: reasons, 2.32 tok/s, 2.5s load
-- **Phi-2 2.7B** — fastest (2.69 tok/s) but no reasoning
+This is a clear **GO for the intended use case** — a monthly, unattended,
+batch extraction of structured fields from bank statements. Nobody waits on
+the output, so even E4B's ~9-min-per-document pace is acceptable for a
+once-a-month job. It is just as clearly a **NO for anything interactive**.
 
-For accuracy-sensitive field extraction, **Gemma 4 E2B is the quality default
-and Qwen3 1.7B the pragmatic everyday choice** (nearly as good, faster, far
-quicker to load). Phi-2 is the speed-first option.
+Model recommendation by priority:
 
-Final go/no-go waits on the E4B benchmark (the original headline question)
-and the n8n end-to-end test.
+| If you want… | Use | Why |
+|--------------|-----|-----|
+| Best extraction accuracy | **Gemma 4 E4B** | Highest quality; slow but fine for batch |
+| Best all-round balance | **Qwen3 1.7B** | Reasons, 2.32 tok/s, 2.5s load |
+| Fastest throughput | **Phi-2 2.7B** | 2.69 tok/s, no reasoning |
+
+**Default pick: Gemma 4 E4B for the monthly run** (accuracy matters most on
+financial data and time doesn't), with **Qwen3 1.7B** as the fast fallback if a
+run needs to turn around quickly.
+
+Remaining before a full end-to-end sign-off: thermal behavior under sustained
+load, and the n8n connectivity / extraction test. The model question itself is
+settled.
