@@ -480,6 +480,46 @@ robustness: these are single, short, clean inputs; a 0.6B model is the most
 likely to degrade on long, messy, multi-page real statements, so validate it on
 real documents before trusting it in production.
 
+#### Thinking off (`--think=false`) — same model, same prompts ✅ tested
+
+Re-ran the identical three prompts with `--think=false`.
+
+| # | Prompt | eval tok/s | load | prompt eval | eval count | wall (total) |
+|---|--------|-----------:|-----:|------------:|-----------:|-------------:|
+| 01 | field extraction | 5.93 | 0.38s | 85 tok @ 9.87 t/s | 41 tok | 16.0s |
+| 02 | doc chunk → 2 sentences | 5.20 | 0.49s | 133 tok @ 9.23 t/s | 101 tok | 34.5s |
+| 03 | sentence → JSON | 6.38 | 0.56s | 58 tok @ 10.28 t/s | 27 tok | 10.5s |
+
+**Total wall 3m26s → 1m01s — ~3.4× faster — and the *whole suite ran in about a
+minute*.** This is the fastest end-to-end result of any model in any mode.
+
+**But this is the first time `--think=false` made quality *worse* on a value.**
+
+| # | Generated tokens | Wall | Quality change |
+|---|------------------|------|----------------|
+| 01 | 333 → **41** (8.1×↓) | 1m22s → 16s | fields still correct; still `- ` bulleted |
+| 02 | 293 → **101** (2.9×↓) | 1m19s → 34s | **regressed: says "two transactions" — the source says 14** |
+| 03 | 211 → **27** (7.8×↓) | 45s → 10s | valid bare JSON (pretty-printed); still correct |
+
+On prompt 02 the no-think summary reads *"…and two transactions recorded: a rent
+payment and a payroll deposit."* — it miscounted **14 → 2**, latching onto the
+two transactions it chose to name. The thinking-on run got this right ("14
+transactions"). On a financial document a wrong transaction count is a real
+accuracy defect, not a cosmetic one.
+
+**This refines the project's headline finding.** For the bigger reasoning models
+(Qwen3 1.7B, Gemma E4B/E2B), `--think=false` was a strict win — faster, never
+worse, sometimes *fixing* a constraint. At **0.6B the reasoning phase is
+load-bearing for accuracy**: removing it bought 3.4× speed but introduced a
+factual miscount. The smaller the model, the more the deliberation is actually
+doing real work rather than just burning tokens. So the "always disable thinking"
+rule holds for the ≥1.7B models but **not** for 0.6B — there, the reasoning tax
+is the price of getting the numbers right.
+
+**Recommendation:** if 0.6B is used at all, keep **thinking on** despite the
+cost — it's still the fastest model in the suite *with* reasoning enabled (3m26s
+total), and that's the configuration that read the document correctly.
+
 ## Open items still pending
 
 - [x] Run the canonical `bench/` suite for Qwen3 1.7B — 2.10–2.32 tok/s; accurate extraction/JSON, but reasoning phase inflates short-task wall time 5–10×
@@ -488,7 +528,8 @@ real documents before trusting it in production.
 - [x] Re-run Gemma 4 E4B with `--think=false` — only prompt 02 changed (505→79 tok, 9m23s→2m24s); suite wall 12m24s→5m43s, no accuracy loss
 - [x] Run the `bench/` suite for Gemma 4 E2B — 1.72–2.07 tok/s; accurate values but reasons on all three prompts and fenced its JSON in ```` ```json ````, losing E4B's bare-output + adaptive-reasoning edges
 - [x] Re-run Gemma 4 E2B with `--think=false` — 11m9s → 2m38s (~4.2× faster) and *fixed* the JSON fencing (now bare object); fastest accurate option on the suite, clears all three format constraints
-- [ ] Run the `bench/` suite for the remaining model (0.6B) for a like-for-like comparison on the real workload
+- [x] Run the `bench/` suite for Qwen3 0.6B — fastest model (4.56–5.36 tok/s); correct on every value with thinking on, clean bare JSON + exact 2-sentence summary; only a cosmetic `- ` bullet prefix on extraction. **Bench sweep now complete across all models.**
+- [x] Re-run Qwen3 0.6B with `--think=false` — 3.4× faster (3m26s → 1m01s) but **regressed accuracy** (miscounted 14 → 2 transactions); at 0.6B the reasoning phase is load-bearing, so keep thinking *on* for this model — the only model where no-think hurt
 - [x] Benchmark Gemma 4 E4B on the ZimaBlade — **runs at 1.07 tok/s, fits in 16 GB**
 - [x] Measure cold-load latency — E2B 21.1s, E4B 28.8s from eMMC
 - [ ] Observe thermal behavior under sustained back-to-back inference —
