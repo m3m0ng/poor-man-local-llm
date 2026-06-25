@@ -403,6 +403,42 @@ reasons on everything, E2B is the model most likely to benefit from a
 and it may also drop the ```` ```json ```` fencing along with the reasoning
 burst.
 
+#### Thinking off (`--think=false`) — same model, same prompts ✅ tested
+
+Re-ran the identical three prompts with `--think=false`, the probe flagged
+above.
+
+| # | Prompt | eval tok/s | load | prompt eval | eval count | wall (total) |
+|---|--------|-----------:|-----:|------------:|-----------:|-------------:|
+| 01 | field extraction | 2.27 | 13.76s | 77 tok @ 3.33 t/s | 37 tok | 53.8s |
+| 02 | doc chunk → 2 sentences | 2.11 | 1.49s | 123 tok @ 3.32 t/s | 87 tok | 1m19.9s |
+| 03 | sentence → JSON | 2.38 | 1.45s | 51 tok @ 3.66 t/s | 21 tok | 24.3s |
+
+**Head-to-head (thinking vs. no-think):**
+
+| # | Generated tokens | Wall time | Quality change |
+|---|------------------|-----------|----------------|
+| 01 | 374 → **37** (10×↓) | 4m15s → **54s** (4.7×↓) | fields still correct |
+| 02 | 425 → **87** (4.9×↓) | 4m28s → **1m20s** (3.3×↓) | still exactly 2 sentences, accurate |
+| 03 | 269 → **21** (13×↓) | 2m27s → **24s** (6.0×↓) | **now bare JSON — the ```` ```json ```` fences are gone** |
+
+**Total wall 11m9s → 2m38s — ~4.2× faster — and the no-think run *fixed* the one
+format defect.** This is the payoff predicted above: with thinking off, prompt 03
+returned the bare `{"name":"Maria","age":34,"city":"Lisbon"}` object a strict
+parser accepts directly, where thinking-on had wrapped it in Markdown fences. As
+with Qwen3 (the two-sentence rule) and unlike E4B (which had nothing to fix),
+disabling reasoning on E2B both sped it up *and* removed a real
+instruction-following miss.
+
+Because E2B reasons on every prompt, the speedup is broad-based here (all three
+prompts shrank 3–6×), not concentrated in a single prompt the way it was for
+E4B's adaptive reasoner.
+
+**Recommendation:** run E2B with **`--think=false`** for the extraction job — it
+is both faster and *more* correct than thinking-on. At 2.11–2.38 tok/s no-think,
+E2B is the fastest accurate option on the suite so far, and it now clears all
+three format constraints.
+
 ## Open items still pending
 
 - [x] Run the canonical `bench/` suite for Qwen3 1.7B — 2.10–2.32 tok/s; accurate extraction/JSON, but reasoning phase inflates short-task wall time 5–10×
@@ -410,6 +446,7 @@ burst.
 - [x] Run the `bench/` suite for Gemma 4 E4B — 1.04–1.26 tok/s; clean sweep on accuracy and all three format constraints, adaptive reasoning (skips thinking on easy prompts)
 - [x] Re-run Gemma 4 E4B with `--think=false` — only prompt 02 changed (505→79 tok, 9m23s→2m24s); suite wall 12m24s→5m43s, no accuracy loss
 - [x] Run the `bench/` suite for Gemma 4 E2B — 1.72–2.07 tok/s; accurate values but reasons on all three prompts and fenced its JSON in ```` ```json ````, losing E4B's bare-output + adaptive-reasoning edges
+- [x] Re-run Gemma 4 E2B with `--think=false` — 11m9s → 2m38s (~4.2× faster) and *fixed* the JSON fencing (now bare object); fastest accurate option on the suite, clears all three format constraints
 - [ ] Run the `bench/` suite for the remaining model (0.6B) for a like-for-like comparison on the real workload
 - [x] Benchmark Gemma 4 E4B on the ZimaBlade — **runs at 1.07 tok/s, fits in 16 GB**
 - [x] Measure cold-load latency — E2B 21.1s, E4B 28.8s from eMMC
