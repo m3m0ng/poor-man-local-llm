@@ -284,11 +284,57 @@ extraction job. Keep reasoning on only for tasks that need genuine multi-step
 judgment (e.g. reconciliation: opening + deposits − debits = closing, or
 anomaly flagging), where the deliberation earns its cost.
 
+### Gemma 4 E4B (`gemma4:e4b`) ✅ tested
+
+| # | Prompt | eval tok/s | load | prompt eval | eval count | wall (total) |
+|---|--------|-----------:|-----:|------------:|-----------:|-------------:|
+| 01 | field extraction | 1.20 | 49.5s | 84 tok @ 1.61 t/s | 37 tok | 2m13.2s |
+| 02 | doc chunk → 2 sentences | 1.04 | 1.76s | 128 tok @ 1.72 t/s | 505 tok | 9m23.2s |
+| 03 | sentence → JSON | 1.26 | 1.52s | 58 tok @ 1.95 t/s | 21 tok | 48.0s |
+
+**Generation rate (1.04–1.26 tok/s) matches the 1.07 tok/s essay figure** — as
+with Qwen3, the realistic workload doesn't move the throughput number. The
+load on prompt 01 (49.5s) is the cold load from eMMC; prompts 02–03 reuse the
+warm model (~1.6s).
+
+- **Accuracy was a clean sweep — the best of any model on this suite.** Field
+  extraction returned all four values correctly (`date 03/14/2026`,
+  `amount $128.50`, `payee Greenfield Hardware`,
+  `transaction_type: store purchase`) as **plain `key: value` lines** — no
+  Markdown table (Phi-2's format miss) and no parser-breaking decoration. The
+  summary was **exactly two sentences** with balances, transaction count, and
+  "good standing" all carried over and the year correct as **2026** (Phi-2
+  hallucinated 2006 here; Qwen3-with-thinking broke the two-sentence rule).
+  JSON output was valid, exactly the three required keys, `age` as a number
+  (`34`), with no trailing text (Phi-2's runaway non-JSON). E4B is the only
+  model so far to satisfy all three format constraints *and* every value.
+- **E4B reasons adaptively — it skipped the thinking phase on the easy
+  prompts.** Prompts 01 and 03 generated just **37 and 21 tokens** and answered
+  directly, with *no* visible "Thinking…" block; only prompt 02 (the summary)
+  ran a reasoning phase, burning **505 tokens**. This is the key contrast with
+  Qwen3 1.7B, which reasoned unconditionally (676 tokens even for the trivial
+  field extraction). E4B spends the reasoning tax only where it judges the task
+  warrants it.
+- **Where it did reason, the tax is steep at 1 tok/s.** Prompt 02's 505 thinking
+  tokens at ~1.04 tok/s is what pushed a two-sentence summary to **9m23s** — by
+  far the slowest single prompt in the suite. The two no-reasoning prompts
+  finished in 48s–2m13s despite the same throughput, because the answers are
+  tiny.
+
+**Takeaway:** on the canonical workload E4B delivers the highest accuracy *and*
+the best instruction-following of everything tested, and its adaptive reasoning
+avoids the across-the-board 5–10× inflation Qwen3 pays. The one expensive prompt
+(02) is the case where E4B chose to reason; if summary latency matters, a
+`--think=false` run (as done for Qwen3) is the obvious next probe. For the
+unattended monthly extraction job, the all-correct result reinforces E4B as the
+accuracy-first default.
+
 ## Open items still pending
 
 - [x] Run the canonical `bench/` suite for Qwen3 1.7B — 2.10–2.32 tok/s; accurate extraction/JSON, but reasoning phase inflates short-task wall time 5–10×
 - [x] Re-run Qwen3 1.7B with `--think=false` — ~5.6× faster overall (12m20s → 2m13s), quality equal or better; use no-think for the extraction job
-- [ ] Run the `bench/` suite for the remaining models (E4B, E2B, Phi-2, 0.6B) for a like-for-like comparison on the real workload
+- [x] Run the `bench/` suite for Gemma 4 E4B — 1.04–1.26 tok/s; clean sweep on accuracy and all three format constraints, adaptive reasoning (skips thinking on easy prompts)
+- [ ] Run the `bench/` suite for the remaining models (E2B, 0.6B) for a like-for-like comparison on the real workload
 - [x] Benchmark Gemma 4 E4B on the ZimaBlade — **runs at 1.07 tok/s, fits in 16 GB**
 - [x] Measure cold-load latency — E2B 21.1s, E4B 28.8s from eMMC
 - [ ] Observe thermal behavior under sustained back-to-back inference —
