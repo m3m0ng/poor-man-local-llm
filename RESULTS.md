@@ -7,8 +7,8 @@
 > Numbers below predate the fixed benchmark suite and were gathered with a
 > single hand-typed essay prompt (`ollama run <model> --verbose`). The
 > canonical, reproducible method going forward is **[`bench/`](bench/)** —
-> run `bench/run.sh "<models>" --verbose` to regenerate these numbers on
-> the realistic extraction/summarization/JSON workload.
+> run `bench/run.sh <model>` (once per model) to regenerate these numbers
+> on the realistic extraction/summarization/JSON workload.
 
 ## Test rig
 

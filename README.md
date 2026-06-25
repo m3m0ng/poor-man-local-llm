@@ -26,8 +26,9 @@ The plan was produced using the [EDDIE](https://github.com/m3m0ng/eddie) methodo
 ## Benchmarking
 
 → **[`bench/`](bench/)** — the canonical benchmark suite. Fixed prompts +
-`bench/run.sh` give reproducible tok/s numbers across models; use this for
-any future model comparison instead of ad-hoc prompts.
+`bench/run.sh <model>` (run once per model) give reproducible tok/s numbers
+via Ollama's own `--verbose` stats; use this for any future model comparison
+instead of ad-hoc prompts.
 
 ## Results
 
