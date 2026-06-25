@@ -143,6 +143,53 @@ firmly in the `> 2` "keep" band on speed. The real question is whether 0.6B is
 5.13 confirms small models are compute/overhead-bound, not bandwidth-bound on
 this CPU.
 
+## Fixed benchmark suite (bench/) — measured
+
+> These numbers come from the canonical [`bench/`](bench/) suite (three fixed
+> prompts: field extraction, document-chunk summary, strict JSON output), not
+> the legacy single essay prompt above. Run via the inline "no repo on the box"
+> form (`M=phi:2.7b` + the three `echo … | ollama run $M --verbose` lines).
+> First model recorded on the suite; others **pending** re-run.
+
+### Phi-2 (`phi:2.7b`) ✅ tested
+
+| Prompt | eval rate | prompt eval rate | eval/prompt tokens | load | total |
+|--------|-----------|------------------|--------------------|------|-------|
+| 01 field-extraction | **3.49 tok/s** | 4.90 tok/s | 62 / 98 | 2.82s | 40.7s |
+| 02 document-chunk | **3.24 tok/s** | 5.91 tok/s | 76 / 136 | 0.15s | 46.7s |
+| 03 json-output | **2.59 tok/s** | 7.88 tok/s | 549 / 76 | 0.17s | **3m 42s** |
+
+**Quality, per prompt:**
+
+- **01 — field extraction:** All four values correct (date `03/14/2026`,
+  amount `$128.50`, payee `Greenfield Hardware`, type `Store Purchase`). But it
+  returned a **Markdown table** despite the prompt asking for plain
+  `key: value` lines — a format-following miss that would break a naive
+  line-parser downstream.
+- **02 — document-chunk summary:** Two clean sentences, balances and
+  "good standing" carried over correctly — but it **hallucinated the year as
+  `March, 2006`** when the source clearly says 2026. On financial documents a
+  silently wrong date is a serious accuracy defect.
+- **03 — strict JSON:** Produced exactly the right JSON object
+  (`{"name":"Maria","age":34,"city":"Lisbon"}`) — and then **ignored the
+  "Respond with ONLY valid JSON, no other text" instruction**, running on for
+  549 tokens into an unrelated, fully hallucinated "game AI logic puzzle." This
+  is the worst failure of the run: no stop after the answer, ~3.5 min of wasted
+  generation, and output a strict JSON parser would choke on unless it grabs
+  only the first object. Consistent with Phi-2 being a weakly
+  instruction-tuned, completion-style model.
+
+**Throughput drift:** eval rate fell monotonically across the three
+back-to-back runs (3.49 → 3.24 → 2.59 tok/s). Could be thermal throttling
+under sustained load (an [open item](#open-items-still-pending)) or just
+longer generations; worth watching when more models are run on the suite.
+
+**Takeaway:** Phi-2's *speed* is fine for batch, but on the real
+extraction/JSON workload it shows three instruction/accuracy problems (wrong
+format, hallucinated date, runaway non-JSON output). For the bank-statement use
+case this argues against Phi-2 as the extraction model and in favor of the
+reasoning models (Qwen3 / Gemma 4) once they're run on the same suite.
+
 ## Speed vs. quality (measured)
 
 | Model | tok/s | Quality | Reasons? | Cold load | Gate |
@@ -162,7 +209,10 @@ is only "basic" — accuracy on real extraction is the open question (#4). Qwen3
 
 - [x] Benchmark Gemma 4 E4B on the ZimaBlade — **runs at 1.07 tok/s, fits in 16 GB**
 - [x] Measure cold-load latency — E2B 21.1s, E4B 28.8s from eMMC
-- [ ] Observe thermal behavior under sustained back-to-back inference
+- [ ] Observe thermal behavior under sustained back-to-back inference —
+  *first hint:* Phi-2's eval rate drifted down 3.49 → 3.24 → 2.59 tok/s across
+  the three back-to-back suite runs (see the Phi-2 entry under "Fixed
+  benchmark suite (bench/)" above)
 - [ ] End-to-end n8n bank-statement extraction test
 
 ## Verdict
