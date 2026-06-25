@@ -158,8 +158,90 @@ Clear speed/quality gradient: E4B is best quality but ~5× slower than the
 is only "basic" — accuracy on real extraction is the open question (#4). Qwen3
 1.7B remains the best all-round balance for general use.
 
+## Bench-suite results — canonical workload (`bench/`)
+
+> First run of the fixed `bench/` prompt suite (field extraction, document-chunk
+> summary, strict JSON), the realistic extraction workload that replaces the
+> generic essay prompt used above. Run with the inline three-prompt form from
+> `bench/README.md` (`ollama run <model> --verbose`).
+
+### Qwen3 1.7B (`qwen3:1.7b`) ✅ tested
+
+| # | Prompt | eval tok/s | load | prompt eval | eval count | wall (total) |
+|---|--------|-----------:|-----:|------------:|-----------:|-------------:|
+| 01 | field extraction | 2.10 | 2.62s | 79 tok @ 3.64 t/s | 676 tok | 5m48.2s |
+| 02 | doc chunk → 2 sentences | 2.26 | 0.78s | 124 tok @ 3.66 t/s | 357 tok | 3m13.4s |
+| 03 | sentence → JSON | 2.32 | 0.67s | 52 tok @ 3.84 t/s | 424 tok | 3m18.1s |
+
+**Generation rate (2.10–2.32 tok/s) matches the 2.32 tok/s essay figure** — the
+realistic workload doesn't change the throughput number. What it *does* expose
+is what raw tok/s hides:
+
+- **Accuracy was good.** Field extraction returned all four fields correctly
+  (`date`, `amount`, `payee`, `transaction_type: payment`). JSON output was
+  valid, exactly the three required keys, with `age` as a number (`34`) — clean.
+- **Instruction-following missed one constraint.** Prompt 02 asked for *exactly
+  two sentences*; the model returned a single run-on sentence. Content was
+  accurate, format was not.
+- **The mandatory reasoning phase dominates wall-clock time.** Extracting four
+  fields burned **676 generated tokens** of "Thinking…" before a 4-line answer
+  — **5m48s for a trivial extraction**. On these short tasks the reasoning tax,
+  not the tok/s, is the real cost: every prompt took 3–6 minutes regardless of
+  how short the actual answer was.
+
+**Implication for the batch use case:** budget by *generated tokens including
+reasoning*, not by answer length. A reasoning model like Qwen3 inflates short
+extraction tasks 5–10×; a non-reasoning model (Phi-2) would finish these in a
+fraction of the time. For per-field extraction at scale, disable thinking (see
+below); reserve the reasoning models for tasks where the extra deliberation
+actually improves accuracy.
+
+#### Thinking off (`--think=false`) — same model, same prompts ✅ tested
+
+Re-ran the identical three prompts with Ollama's native `--think=false` switch
+(the `/no_think` prompt tag was *not* honored by this build — Ollama 0.23.2 —
+so the runtime flag is the reliable way to disable reasoning).
+
+| # | Prompt | eval tok/s | load | prompt eval | eval count | wall (total) |
+|---|--------|-----------:|-----:|------------:|-----------:|-------------:|
+| 01 | field extraction | 2.62 | 2.64s | 85 tok @ 3.63 t/s | 37 tok | 40.4s |
+| 02 | doc chunk → 2 sentences | 2.49 | 0.52s | 130 tok @ 3.64 t/s | 75 tok | 1m06.4s |
+| 03 | sentence → JSON | 2.72 | 0.60s | 58 tok @ 3.84 t/s | 27 tok | 25.7s |
+
+**Head-to-head (thinking vs. no-think):**
+
+| # | Generated tokens | Wall time | Quality change |
+|---|------------------|-----------|----------------|
+| 01 | 676 → **37** (18×↓) | 5m48s → **40s** (8.6×↓) | fields still correct |
+| 02 | 357 → **75** (4.8×↓) | 3m13s → **1m06s** (2.9×↓) | **now exactly 2 sentences** — thinking had failed this |
+| 03 | 424 → **27** (16×↓) | 3m18s → **26s** (7.6×↓) | valid JSON, identical result |
+
+**Total wall time 12m20s → 2m13s — ~5.6× faster — with quality equal or
+better.** The decisive result is prompt 02: with thinking *on* the model broke
+the "exactly two sentences" rule (one run-on sentence); with thinking *off* it
+followed it. On this extraction workload the reasoning phase bought **no**
+measurable accuracy and actively hurt instruction-following, at 3–6× the cost.
+
+The only content difference: prompt 01's `transaction_type` came back `payment`
+(thinking) vs. `store purchase` (no-think) — both defensible readings of the
+source sentence, neither clearly better.
+
+**New bottleneck once thinking is off:** generation is now tiny, so **prompt
+processing dominates** (prompt 01 = 23s prompt-eval + 14s generation). At
+~3.6 tok/s prompt-eval, long multi-page bank statements — large *inputs* — will
+be the limiting factor, not output length. Budget accordingly for real
+documents.
+
+**Recommendation:** run Qwen3 1.7B with **`--think=false`** for the bank-statement
+extraction job. Keep reasoning on only for tasks that need genuine multi-step
+judgment (e.g. reconciliation: opening + deposits − debits = closing, or
+anomaly flagging), where the deliberation earns its cost.
+
 ## Open items still pending
 
+- [x] Run the canonical `bench/` suite for Qwen3 1.7B — 2.10–2.32 tok/s; accurate extraction/JSON, but reasoning phase inflates short-task wall time 5–10×
+- [x] Re-run Qwen3 1.7B with `--think=false` — ~5.6× faster overall (12m20s → 2m13s), quality equal or better; use no-think for the extraction job
+- [ ] Run the `bench/` suite for the remaining models (E4B, E2B, Phi-2, 0.6B) for a like-for-like comparison on the real workload
 - [x] Benchmark Gemma 4 E4B on the ZimaBlade — **runs at 1.07 tok/s, fits in 16 GB**
 - [x] Measure cold-load latency — E2B 21.1s, E4B 28.8s from eMMC
 - [ ] Observe thermal behavior under sustained back-to-back inference
