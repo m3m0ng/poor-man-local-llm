@@ -329,11 +329,50 @@ avoids the across-the-board 5–10× inflation Qwen3 pays. The one expensive pro
 unattended monthly extraction job, the all-correct result reinforces E4B as the
 accuracy-first default.
 
+#### Thinking off (`--think=false`) — same model, same prompts ✅ tested
+
+Re-ran the identical three prompts with `--think=false`, the probe flagged
+above.
+
+| # | Prompt | eval tok/s | load | prompt eval | eval count | wall (total) |
+|---|--------|-----------:|-----:|------------:|-----------:|-------------:|
+| 01 | field extraction | 1.21 | 1m12.7s | 77 tok @ 1.61 t/s | 37 tok | 2m31.7s |
+| 02 | doc chunk → 2 sentences | 1.16 | 1.56s | 121 tok @ 1.63 t/s | 79 tok | 2m24.3s |
+| 03 | sentence → JSON | 1.26 | 1.59s | 51 tok @ 1.73 t/s | 21 tok | 47.7s |
+
+**Head-to-head (thinking vs. no-think):**
+
+| # | Generated tokens | Wall time | Quality change |
+|---|------------------|-----------|----------------|
+| 01 | 37 → **37** (no change) | 2m13s → 2m31s | identical answer; wall variance is the cold load (49.5s → 72.7s) |
+| 02 | 505 → **79** (6.4×↓) | 9m23s → **2m24s** (3.9×↓) | still exactly 2 sentences, accurate, year 2026 correct |
+| 03 | 21 → **21** (no change) | 48s → 48s | identical JSON |
+
+**This is the cleanest confirmation of the adaptive-reasoning finding.**
+`--think=false` changed **only prompt 02** — the single prompt E4B chose to
+reason on. Prompts 01 and 03 were *already* generating 37 and 21 tokens with no
+thinking block, so disabling reasoning left them byte-for-byte identical
+(the prompt-01 wall difference is purely a slower cold load, not compute).
+
+The win is concentrated in prompt 02: **505 → 79 tokens, 9m23s → 2m24s (~3.9×
+faster)** with the summary still exactly two sentences and accurate. Unlike
+Qwen3 — where no-think actively *fixed* a broken constraint (the two-sentence
+rule) — here thinking-on already produced a correct summary, so the no-think
+gain is pure latency with no quality change either way.
+
+**Recommendation:** run E4B with **`--think=false`** for the extraction job.
+Because E4B only reasons on the harder prompt, the flag costs nothing on the
+prompts it would have skipped anyway and removes the one expensive reasoning
+burst on the summary — total suite wall **12m24s → 5m43s** with no accuracy
+loss. As with Qwen3, keep reasoning on only for tasks needing genuine
+multi-step judgment (reconciliation, anomaly flagging).
+
 ## Open items still pending
 
 - [x] Run the canonical `bench/` suite for Qwen3 1.7B — 2.10–2.32 tok/s; accurate extraction/JSON, but reasoning phase inflates short-task wall time 5–10×
 - [x] Re-run Qwen3 1.7B with `--think=false` — ~5.6× faster overall (12m20s → 2m13s), quality equal or better; use no-think for the extraction job
 - [x] Run the `bench/` suite for Gemma 4 E4B — 1.04–1.26 tok/s; clean sweep on accuracy and all three format constraints, adaptive reasoning (skips thinking on easy prompts)
+- [x] Re-run Gemma 4 E4B with `--think=false` — only prompt 02 changed (505→79 tok, 9m23s→2m24s); suite wall 12m24s→5m43s, no accuracy loss
 - [ ] Run the `bench/` suite for the remaining models (E2B, 0.6B) for a like-for-like comparison on the real workload
 - [x] Benchmark Gemma 4 E4B on the ZimaBlade — **runs at 1.07 tok/s, fits in 16 GB**
 - [x] Measure cold-load latency — E2B 21.1s, E4B 28.8s from eMMC
