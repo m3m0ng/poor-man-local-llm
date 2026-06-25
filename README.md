@@ -23,6 +23,12 @@ The plan was produced using the [EDDIE](https://github.com/m3m0ng/eddie) methodo
 | [`apollolake-e4b-reality-check`](eddie/apollolake-e4b-reality-check/) | Hardware assessment + setup plan for Apollo Lake ZimaBlade 7700 | Complete |
 | [`gemma-e4b-rig-30tps`](eddie/gemma-e4b-rig-30tps/) | Original plan (J4125-based, superseded by corrected hardware specs) | Archived |
 
+## Benchmarking
+
+→ **[`bench/`](bench/)** — the canonical benchmark suite. Fixed prompts +
+`bench/run.sh` give reproducible tok/s numbers across models; use this for
+any future model comparison instead of ad-hoc prompts.
+
 ## Results
 
 → **[`RESULTS.md`](RESULTS.md)** — real-world numbers measured on the ZimaBlade.
