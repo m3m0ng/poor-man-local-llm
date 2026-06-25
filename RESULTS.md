@@ -367,13 +367,50 @@ burst on the summary — total suite wall **12m24s → 5m43s** with no accuracy
 loss. As with Qwen3, keep reasoning on only for tasks needing genuine
 multi-step judgment (reconciliation, anomaly flagging).
 
+### Gemma 4 E2B (`gemma4:e2b`) ✅ tested
+
+| # | Prompt | eval tok/s | load | prompt eval | eval count | wall (total) |
+|---|--------|-----------:|-----:|------------:|-----------:|-------------:|
+| 01 | field extraction | 1.72 | 11.06s | 84 tok @ 3.32 t/s | 374 tok | 4m14.9s |
+| 02 | doc chunk → 2 sentences | 1.86 | 1.57s | 128 tok @ 3.51 t/s | 425 tok | 4m27.5s |
+| 03 | sentence → JSON | 2.07 | 1.38s | 58 tok @ 4.04 t/s | 269 tok | 2m26.6s |
+
+**Generation rate (1.72–2.07 tok/s) matches the 1.91 tok/s essay figure** and is
+~1.7× E4B's — the expected gain from the smaller 2B model. Prompt-eval rate
+(3.3–4.0 t/s) is likewise about double E4B's.
+
+- **Accuracy held up on values.** Field extraction returned all four fields
+  correctly (`transaction_type: store purchase`) as plain `key: value` lines;
+  the summary was **exactly two sentences**, accurate, with the year correct as
+  **2026**; the JSON carried the right three keys with `age` as a number.
+- **One format miss: prompt 03 wrapped its JSON in a ```` ```json ```` fenced
+  code block.** The values are correct, but the prompt said "Respond with ONLY
+  valid JSON, no other text" — the Markdown fences are exactly the "other text"
+  it was told to omit, and a strict parser fed the raw output would choke unless
+  it strips fences first. E4B returned the bare object here; E2B did not.
+- **E2B reasons *unconditionally* — the key contrast with E4B.** It ran a
+  visible "Thinking…" phase on **all three** prompts (374 / 425 / 269 eval
+  tokens), including the trivial field extraction and the one-line JSON
+  conversion. E4B, by contrast, skipped reasoning on exactly those two short
+  prompts (37 / 21 tokens). The smaller sibling is the *less* judicious of the
+  two about when deliberation is worth it, so it pays the reasoning tax on every
+  prompt: even the JSON conversion took **2m26s** behind 269 thinking tokens.
+
+**Takeaway:** E2B is faster than E4B and accurate on values, but it loses E4B's
+two quality edges — the bare-JSON output and the adaptive reasoning. Because it
+reasons on everything, E2B is the model most likely to benefit from a
+`--think=false` run (as done for Qwen3 and E4B); that's the obvious next probe,
+and it may also drop the ```` ```json ```` fencing along with the reasoning
+burst.
+
 ## Open items still pending
 
 - [x] Run the canonical `bench/` suite for Qwen3 1.7B — 2.10–2.32 tok/s; accurate extraction/JSON, but reasoning phase inflates short-task wall time 5–10×
 - [x] Re-run Qwen3 1.7B with `--think=false` — ~5.6× faster overall (12m20s → 2m13s), quality equal or better; use no-think for the extraction job
 - [x] Run the `bench/` suite for Gemma 4 E4B — 1.04–1.26 tok/s; clean sweep on accuracy and all three format constraints, adaptive reasoning (skips thinking on easy prompts)
 - [x] Re-run Gemma 4 E4B with `--think=false` — only prompt 02 changed (505→79 tok, 9m23s→2m24s); suite wall 12m24s→5m43s, no accuracy loss
-- [ ] Run the `bench/` suite for the remaining models (E2B, 0.6B) for a like-for-like comparison on the real workload
+- [x] Run the `bench/` suite for Gemma 4 E2B — 1.72–2.07 tok/s; accurate values but reasons on all three prompts and fenced its JSON in ```` ```json ````, losing E4B's bare-output + adaptive-reasoning edges
+- [ ] Run the `bench/` suite for the remaining model (0.6B) for a like-for-like comparison on the real workload
 - [x] Benchmark Gemma 4 E4B on the ZimaBlade — **runs at 1.07 tok/s, fits in 16 GB**
 - [x] Measure cold-load latency — E2B 21.1s, E4B 28.8s from eMMC
 - [ ] Observe thermal behavior under sustained back-to-back inference —
