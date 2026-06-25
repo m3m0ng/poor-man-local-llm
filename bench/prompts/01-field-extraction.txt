@@ -1,0 +1,3 @@
+Extract the following fields from the text below and list them as plain "key: value" pairs, one per line: date, amount, payee, transaction_type.
+
+Text: "On 03/14/2026, a payment of $128.50 was made to Greenfield Hardware for a store purchase."

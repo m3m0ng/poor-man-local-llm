@@ -3,6 +3,12 @@
 > Measured on actual hardware. Numbers here replace the estimates in
 > [`APPROACH.md`](APPROACH.md). Only measured values are recorded; anything
 > not yet tested is marked **pending**.
+>
+> Numbers below predate the fixed benchmark suite and were gathered with a
+> single hand-typed essay prompt (`ollama run <model> --verbose`). The
+> canonical, reproducible method going forward is **[`bench/`](bench/)** —
+> run `bench/run.sh "<models>" --verbose` to regenerate these numbers on
+> the realistic extraction/summarization/JSON workload.
 
 ## Test rig
 

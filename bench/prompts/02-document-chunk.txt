@@ -1,0 +1,3 @@
+Summarize the following document chunk in exactly two sentences.
+
+Document: "Monthly Account Statement - Checking Account ending in 4471. Statement period: March 1, 2026 to March 31, 2026. Opening balance: $2,340.18. Closing balance: $1,987.42. During this period, 14 transactions were recorded, including 3 recurring subscription payments (totaling $42.97), 2 utility payments (totaling $186.30), 1 rent payment of $1,200.00, and 8 miscellaneous debit card purchases (totaling $123.49). One deposit of $1,200.00 was received from payroll on March 15. No overdraft fees were charged during this period. The account remains in good standing with no flagged or disputed transactions."
