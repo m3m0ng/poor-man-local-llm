@@ -439,6 +439,47 @@ is both faster and *more* correct than thinking-on. At 2.11–2.38 tok/s no-thin
 E2B is the fastest accurate option on the suite so far, and it now clears all
 three format constraints.
 
+### Qwen3 0.6B (`qwen3:0.6b`) ✅ tested
+
+| # | Prompt | eval tok/s | load | prompt eval | eval count | wall (total) |
+|---|--------|-----------:|-----:|------------:|-----------:|-------------:|
+| 01 | field extraction | 4.71 | 2.15s | 79 tok @ 9.53 t/s | 333 tok | 1m21.9s |
+| 02 | doc chunk → 2 sentences | 4.56 | 0.58s | 127 tok @ 9.37 t/s | 293 tok | 1m18.9s |
+| 03 | sentence → JSON | 5.36 | 0.59s | 52 tok @ 10.35 t/s | 211 tok | 45.4s |
+
+**By far the fastest model on the suite** — 4.56–5.36 tok/s generation (~2× Qwen3
+1.7B, ~4× E4B) and 9.4–10.4 t/s prompt-eval. This matches its 5.13 tok/s essay
+figure and confirms small models are compute/overhead-bound, not bandwidth-bound
+on this CPU.
+
+- **Accuracy was correct on every value — better than expected for 0.6B.** Field
+  extraction returned all four fields right (`transaction_type: store purchase`);
+  the summary was **exactly two sentences**, accurate, year correct as **2026**;
+  the JSON was the **bare** `{"name":"Maria","age":34,"city":"Lisbon"}` object —
+  valid, three keys, `age` numeric, no fence, no runaway. It cleanly passed the
+  two constraints that tripped bigger models (E2B's ```` ```json ```` fence,
+  Qwen3-1.7B's two-sentence miss).
+- **One minor format slip on prompt 01: it prefixed each line with a `- ` bullet**
+  (`- date: 03/14/2026`) instead of plain `key: value` lines. A parser splitting
+  on `": "` still recovers every field, so this is cosmetic rather than breaking —
+  much milder than Phi-2's full Markdown table — but it is *not* the literal
+  format requested.
+- **It reasons unconditionally**, like the 1.7B and E2B: a thinking phase on all
+  three prompts (333 / 293 / 211 tokens). The reasoning tax is what holds total
+  wall to **3m26s** despite the high tok/s — a `--think=false` run would likely
+  drop this well under a minute and is the obvious follow-up.
+
+**Takeaway — the surprise of the sweep.** 0.6B is far more capable on this
+workload than its "basic" essay rating suggested: correct on every value, clean
+bare JSON, exact sentence count, at 2–4× everyone else's speed. The only blemish
+is the cosmetic bullet prefix on extraction. It does **not** dethrone E4B on
+quality — E4B is still the cleanest (bare output on *every* prompt) and the only
+adaptive reasoner — but 0.6B is now a legitimate fast-fallback contender
+alongside Qwen3 1.7B, and on raw throughput it wins outright. The open risk is
+robustness: these are single, short, clean inputs; a 0.6B model is the most
+likely to degrade on long, messy, multi-page real statements, so validate it on
+real documents before trusting it in production.
+
 ## Open items still pending
 
 - [x] Run the canonical `bench/` suite for Qwen3 1.7B — 2.10–2.32 tok/s; accurate extraction/JSON, but reasoning phase inflates short-task wall time 5–10×
