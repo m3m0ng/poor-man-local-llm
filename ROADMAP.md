@@ -169,14 +169,14 @@ Then:
 
 ## Progress
 
-| # | Item | Blocks | Status |
-|---|------|--------|--------|
-| C1 | Land stranded eval/ + thermal branch | C3 | ☐ |
-| C2 | Verify LAN exposure + firewall | C4 | ☐ |
-| C3 | Extraction accuracy eval | C4 (soft) | ☐ |
-| C4 | **n8n end-to-end run — the endpoint** | C5 | ☐ |
-| C5 | `OPERATING.md` runbook | C6 | ☐ |
-| C6 | Doc reconciliation + `v1.0` tag | — | ☐ |
+| # | Issue | Item | Blocks | Status |
+|---|-------|------|--------|--------|
+| C1 | [#16](https://github.com/m3m0ng/poor-man-local-llm/issues/16) | Land stranded eval/ + thermal branch | C3 | ☐ |
+| C2 | [#17](https://github.com/m3m0ng/poor-man-local-llm/issues/17) | Verify LAN exposure + firewall | C4 | ☐ |
+| C3 | [#4](https://github.com/m3m0ng/poor-man-local-llm/issues/4) | Extraction accuracy eval | C4 (soft) | ☐ |
+| C4 | [#8](https://github.com/m3m0ng/poor-man-local-llm/issues/8) | **n8n end-to-end run — the endpoint** | C5 | ☐ |
+| C5 | [#18](https://github.com/m3m0ng/poor-man-local-llm/issues/18) | `OPERATING.md` runbook | C6 | ☐ |
+| C6 | [#19](https://github.com/m3m0ng/poor-man-local-llm/issues/19) | Doc reconciliation + `v1.0` tag | — | ☐ |
 
 **Closed as out-of-scope during this triage:** [#5](https://github.com/m3m0ng/poor-man-local-llm/issues/5) (quantization sweep),
 [#6](https://github.com/m3m0ng/poor-man-local-llm/issues/6) (standalone thermal study — folded into C4),
