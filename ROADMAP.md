@@ -169,14 +169,27 @@ Then:
 
 ## Progress
 
-| # | Issue | Item | Blocks | Status |
-|---|-------|------|--------|--------|
-| C1 | [#16](https://github.com/m3m0ng/poor-man-local-llm/issues/16) | Land stranded eval/ + thermal branch | C3 | ☐ |
-| C2 | [#17](https://github.com/m3m0ng/poor-man-local-llm/issues/17) | Verify LAN exposure + firewall | C4 | ☐ |
-| C3 | [#4](https://github.com/m3m0ng/poor-man-local-llm/issues/4) | Extraction accuracy eval | C4 (soft) | ☐ |
-| C4 | [#8](https://github.com/m3m0ng/poor-man-local-llm/issues/8) | **n8n end-to-end run — the endpoint** | C5 | ☐ |
-| C5 | [#18](https://github.com/m3m0ng/poor-man-local-llm/issues/18) | `OPERATING.md` runbook | C6 | ☐ |
-| C6 | [#19](https://github.com/m3m0ng/poor-man-local-llm/issues/19) | Doc reconciliation + `v1.0` tag | — | ☐ |
+Split by **who can actually do it**. The dividing line is physical access: the
+ZimaBlade and the n8n instance are reachable only from your hardware. Everything
+else is automatable and is already done.
+
+### Needs you — two sittings, both "run it, paste output"
+
+| # | Issue | Action | Blocked by |
+|---|-------|--------|------------|
+| C2+C3 | [#17](https://github.com/m3m0ng/poor-man-local-llm/issues/17) | Run `scripts/lan-setup.sh` then `scripts/collect.sh` on the box; curl from the n8n host | — |
+| C4 | [#8](https://github.com/m3m0ng/poor-man-local-llm/issues/8) | **Import the workflow, run one statement** — the endpoint | #17 |
+
+### Done, or mine to finish once data lands
+
+| # | Issue | Item | Status |
+|---|-------|------|--------|
+| C1 | [#16](https://github.com/m3m0ng/poor-man-local-llm/issues/16) | Stranded branch merged; `eval/run.sh` no-think defect fixed | ✅ done |
+| C5 | [#18](https://github.com/m3m0ng/poor-man-local-llm/issues/18) | `OPERATING.md` written; 2 timing gaps pending | ◐ drafted |
+| C6 | [#19](https://github.com/m3m0ng/poor-man-local-llm/issues/19) | `APPROACH.md` drift fixed; results + tag pending | ◐ partial |
+
+Also built rather than delegated: `scripts/lan-setup.sh`, `scripts/collect.sh`,
+and `n8n/extract-statement.json`.
 
 **Closed as out-of-scope during this triage:** [#5](https://github.com/m3m0ng/poor-man-local-llm/issues/5) (quantization sweep),
 [#6](https://github.com/m3m0ng/poor-man-local-llm/issues/6) (standalone thermal study — folded into C4),
