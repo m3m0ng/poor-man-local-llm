@@ -1,0 +1,42 @@
+[
+  {
+    "id": "stmt-01",
+    "text": "On 03/14/2026, a payment of $128.50 was made to Greenfield Hardware for a store purchase.",
+    "truth": { "date": "2026-03-14", "amount": "128.50", "payee": "Greenfield Hardware", "transaction_type": "purchase" }
+  },
+  {
+    "id": "stmt-02",
+    "text": "A deposit of $2,450.00 was credited to the account on 04/01/2026 from Acme Corp Payroll.",
+    "truth": { "date": "2026-04-01", "amount": "2450.00", "payee": "Acme Corp Payroll", "transaction_type": "deposit" }
+  },
+  {
+    "id": "stmt-03",
+    "text": "On 2026-02-28, a withdrawal of $60.00 was made at an ATM on Main Street.",
+    "truth": { "date": "2026-02-28", "amount": "60.00", "payee": "ATM Main Street", "transaction_type": "withdrawal" }
+  },
+  {
+    "id": "stmt-04",
+    "text": "Rent payment of $1,200.00 to Riverside Apartments LLC processed on March 1, 2026.",
+    "truth": { "date": "2026-03-01", "amount": "1200.00", "payee": "Riverside Apartments LLC", "transaction_type": "payment" }
+  },
+  {
+    "id": "stmt-05",
+    "text": "On 03/22/2026, customer paid $45.99 to Streamline Subscriptions for a monthly subscription renewal.",
+    "truth": { "date": "2026-03-22", "amount": "45.99", "payee": "Streamline Subscriptions", "transaction_type": "subscription" }
+  },
+  {
+    "id": "stmt-06",
+    "text": "A transfer of $500.00 was sent to John Doe Savings on 04/05/2026.",
+    "truth": { "date": "2026-04-05", "amount": "500.00", "payee": "John Doe Savings", "transaction_type": "transfer" }
+  },
+  {
+    "id": "stmt-07",
+    "text": "On 03/30/2026, a refund of $19.99 was issued from Northside Books for a returned item.",
+    "truth": { "date": "2026-03-30", "amount": "19.99", "payee": "Northside Books", "transaction_type": "refund" }
+  },
+  {
+    "id": "stmt-08",
+    "text": "Utility bill payment of $87.43 to City Power & Light dated 03/18/2026.",
+    "truth": { "date": "2026-03-18", "amount": "87.43", "payee": "City Power & Light", "transaction_type": "payment" }
+  }
+]
