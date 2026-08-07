@@ -36,9 +36,12 @@ Running a local LLM on a **ZimaBlade 7700 (Intel Apollo Lake: N3450/J3455/E3950)
 
 ## Step-by-Step Plan
 
-### 1. Install Debian 12 on the ZimaBlade
+### 1. Install Debian on the ZimaBlade ✅ done
 
-Flash Debian 12 minimal netinst to USB → boot ZimaBlade → install to 32GB eMMC.
+Flash a Debian minimal netinst to USB → boot ZimaBlade → install to 32GB eMMC.
+
+> **Done:** the box runs **Debian 13 (trixie), kernel 6.12**. The original plan
+> said Debian 12; 13 was current at install time and works fine.
 
 ### 2. Harden eMMC for longevity
 
@@ -77,61 +80,50 @@ ollama pull gemma4:e4b
 E4B pulls as **~9.6 GB** (measured — larger than a typical Q4_K_M 4B; budget
 disk accordingly). It fits in 16 GB RAM with headroom. Verify with a smoke test.
 
-### 5. Benchmark
+### 5. Benchmark ✅ done
+
+Use the canonical suite — it replaced the old `curl`/`jq` one-liner, which
+measured a single ad-hoc prompt and needed extra tooling:
 
 ```bash
-curl -s http://localhost:11434/api/generate -d '{
-  "model": "gemma4:e4b",
-  "prompt": "Extract the following fields from this bank statement: date, amount, payee, transaction type.",
-  "stream": false
-}' | jq '{tok_per_sec: (.eval_count / .eval_duration * 1e9)}'
+bench/run.sh gemma4:e4b          # three fixed prompts, Ollama's own --verbose stats
+bench/run.sh qwen3:1.7b
 ```
 
-### 6. Decide: E4B or Fallback
+See [`bench/README.md`](bench/README.md) for the no-repo-on-the-box variant.
 
-| tok/s | Decision |
-|-------|----------|
-| > 2 | Keep E4B — great |
-| 1–2 | Try E4B, but fallback recommended |
-| < 1 | Switch to fallback model |
+### 6. Decide: E4B or Fallback ✅ decided
 
-If switching:
+The original gate was "> 2 tok/s keep E4B, < 1 switch." **E4B measured 1.07
+tok/s** — landing in the ambiguous middle band, where the gate said "fallback
+recommended."
 
-```bash
-ollama rm gemma4:e4b
-ollama pull phi:2.7b     # recommended fallback (~1.6GB)
-# or: ollama pull qwen2.5:1.5b  # alternative (~1.0GB)
-```
+**We kept E4B anyway, and the gate was wrong.** It assumed speed was the
+deciding factor. For a monthly unattended batch nobody waits on, throughput
+below the interactive threshold costs nothing, while accuracy on financial data
+costs a great deal. On the `bench/` suite E4B was the only model to get every
+value *and* every format constraint right.
 
-Re-run benchmark with the fallback model.
+**Outcome:** `gemma4:e4b` with `--think=false` is the default;
+`qwen3:1.7b --think=false` is the fast fallback. Phi-2 is ruled out — it failed
+all three suite prompts. Full reasoning in [`RESULTS.md`](RESULTS.md).
 
 ### 7. Expose Ollama on LAN
 
-```bash
-sudo systemctl edit ollama.service
-```
-
-Add:
-
-```ini
-[Service]
-Environment="OLLAMA_HOST=0.0.0.0:11434"
-```
-
-Then:
+Scripted — it firewalls *before* binding, so the port is never briefly open and
+unfiltered:
 
 ```bash
-sudo systemctl daemon-reload
-sudo systemctl restart ollama
+scripts/lan-setup.sh 192.168.0.0/24 --dry-run   # show the changes
+scripts/lan-setup.sh 192.168.0.0/24             # apply, with confirmation
 ```
 
-Restrict to LAN only:
+Equivalent by hand: a systemd override setting
+`Environment="OLLAMA_HOST=0.0.0.0:11434"`, `daemon-reload`, `restart ollama`,
+plus `ufw allow from <subnet> to any port 11434 proto tcp`.
 
-```bash
-sudo ufw allow from 192.168.0.0/24 to any port 11434
-```
-
-⚠️ Ollama has no authentication. Never expose outside LAN.
+⚠️ Ollama has no authentication. The firewall rule is the only access control —
+never expose outside the LAN.
 
 ### 8. Verify n8n Connectivity
 
@@ -157,27 +149,52 @@ N8N_AI_TIMEOUT_MAX=1800000       # 30 min for LLM HTTP calls (ms)
 
 ### 9. Run Monthly Workflow
 
+A starter workflow ships with the repo:
+[`n8n/extract-statement.json`](n8n/extract-statement.json) — import it, set your
+ZimaBlade IP in the **Config** node, and run. It handles the JSON-parse failure
+mode explicitly and reports Ollama's own timing.
+
 1. Drop bank statement into NAS watched folder or Google Drive
 2. n8n trigger fires → sends to Ollama on ZimaBlade
 3. Ollama returns structured data
 4. n8n writes output to spreadsheet/database
 
-The user designs their own n8n workflow — this plan covers only connectivity.
+Swap the manual trigger and the terminal no-op nodes for your real source and
+destination — the middle of the workflow is the part this project settles.
 
-## Fallback Model Recommendation
+Day-to-day operation: [`OPERATING.md`](OPERATING.md).
 
-| Model | Size | Est. tok/s | Notes |
-|-------|------|-----------|-------|
-| **Gemma 4 E2B** (`gemma4:e2b`) | ~2 GB | **1.91 measured** | Highest quality, reasons before answering; 21s cold load |
-| **Qwen3 1.7B** (`qwen3:1.7b`) | ~1.4 GB | **2.32 measured** | Best balance — reasons, fast-ish, 2.5s load |
-| **Phi-2 2.7B** (`phi:2.7b`) | ~1.6 GB | **2.69 measured** | Fastest; good instruction-following, no reasoning |
-| Gemma 2B | ~1.4 GB | 1.5–4 | Google-trained, good text understanding |
+## Model Recommendation (all measured)
+
+Every row below is measured on this box — no estimates. Speeds are from the
+canonical `bench/` suite in each model's **recommended** mode.
+
+| Model | Size | tok/s | Mode | Role |
+|-------|------|-------|------|------|
+| **Gemma 4 E4B** (`gemma4:e4b`) | ~9.6 GB | 1.2 | `--think=false` | **Default** — best accuracy, clean sweep on the suite |
+| **Qwen3 1.7B** (`qwen3:1.7b`) | ~1.4 GB | 2.5–2.7 | `--think=false` | **Fast fallback** — fastest trustworthy result (2m13s suite) |
+| Gemma 4 E2B (`gemma4:e2b`) | ~2 GB | 2.1–2.4 | `--think=false` | Middle ground; no-think fixed its JSON fencing |
+| Qwen3 0.6B (`qwen3:0.6b`) | ~522 MB | ~5 | thinking **ON** | Fastest, but miscounts without reasoning |
+| ~~Phi-2 2.7B~~ (`phi:2.7b`) | ~1.6 GB | 2.6–3.5 | — | **Avoid for extraction** — failed all three suite prompts |
+
+> Gemma 2B was listed as a candidate in the original plan and never tested; it
+> was dropped once four better-characterized models were measured.
+
+**The `--think=false` rule:** for models ≥1.7B, disabling reasoning is a strict
+win — faster, never less accurate, and it *fixed* format misses on Qwen3 1.7B
+and E2B. At 0.6B the reasoning phase is load-bearing: disabling it introduced a
+factual miscount. See [`RESULTS.md`](RESULTS.md).
 
 ## Open Risks
 
 - ~~**No verified Apollo Lake benchmarks exist** — tok/s are estimates.~~ **Resolved:**
   all four models measured on the J3455 ([`RESULTS.md`](RESULTS.md)).
-- **Thermal throttling** — passively cooled ZimaBlade may slow down under sustained inference. Still unmeasured.
+- **Thermal throttling** — passively cooled ZimaBlade may slow down under sustained
+  inference. Downgraded from a risk to an observation: the workload is one document
+  a month, not a sustained batch. The only hint is Phi-2's eval rate drifting
+  3.49 → 3.24 → 2.59 tok/s across three back-to-back prompts, which is equally
+  explained by the third being a 549-token runaway. Being observed during the
+  end-to-end run rather than studied separately.
 - **Cold-start latency** — confirmed: loading from eMMC took **21–29s** (E2B 21.1s, E4B 28.8s).
 - **32GB eMMC is tight — confirmed real:** only **4.3 GB free** with E4B (9.6 GB) installed,
   which already forced removing `phi` and `gemma4:e2b`. You can hold E4B **or** a couple of
