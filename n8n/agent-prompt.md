@@ -243,6 +243,149 @@ good rows and inspect the bad ones separately.
 
 ---
 
+## Variant: `output` comes back as a JSON string
+
+If you run the agent **without** the Structured Output Parser attached, the
+node emits a single item whose `output` is a *string* of JSON, and the array is
+bare — no statement-level wrapper:
+
+```json
+[ { "output": "[\n  {\n    \"date\": \"2026-06-01\", ... } \n]" } ]
+```
+
+Split Out cannot work on that: there is no `output.transactions` to point at,
+only text. Replace **both** the Split Out and the normalise node with this one
+Code node, which parses, explodes and type-checks in a single pass.
+
+```js
+// Code node — "Parse + Flatten for Data Table"  (Run Once for All Items)
+
+// Statement-level fields aren't in the model output in this variant.
+// Set them here, or extract them in a second small call.
+const CURRENCY      = 'MYR';
+const ACCOUNT_LAST4 = null;
+const STRIP_TRAILING_AMOUNT = true;  // "SALE DEBIT 9.00" -> "SALE DEBIT"
+
+const cents = (n) => Math.round(n * 100);
+
+const num = (v) => {
+  if (v === null || v === undefined || v === '') return null;
+  if (typeof v === 'number') return Number.isFinite(v) ? v : null;
+  let s = String(v).trim();
+  const paren = /^\(.*\)$/.test(s);
+  s = s.replace(/[()]/g, '').replace(/[^0-9.,\-]/g, '');
+  if (/,\d{2}$/.test(s)) s = s.replace(/\./g, '').replace(',', '.');
+  else s = s.replace(/,/g, '');
+  const n = parseFloat(s);
+  if (!Number.isFinite(n)) return null;
+  return paren ? -Math.abs(n) : n;
+};
+
+// The model may return a string, an array, or {transactions:[...]}.
+// It has also been observed wrapping JSON in ``` fences (see RESULTS.md).
+const toArray = (raw) => {
+  let v = raw;
+  if (typeof v === 'string') {
+    let s = v.trim().replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
+    try {
+      v = JSON.parse(s);
+    } catch (e) {
+      const m = s.match(/\[[\s\S]*\]|\{[\s\S]*\}/);
+      if (!m) throw new Error(`Model output is not JSON: ${s.slice(0, 200)}`);
+      v = JSON.parse(m[0]);
+    }
+  }
+  if (Array.isArray(v)) return v;
+  if (v && Array.isArray(v.transactions)) return v.transactions;
+  throw new Error(`Expected an array of transactions, got ${typeof v}`);
+};
+
+let sourceFile = null;
+try {
+  const form = $('On form submission').first().json;
+  sourceFile = Object.values(form).find((f) => f && f.filename)?.filename ?? null;
+} catch (e) { /* node renamed or run standalone */ }
+
+const rows = [];
+let prevBalance = null;
+
+for (const item of $input.all()) {
+  for (const t of toArray(item.json.output ?? item.json)) {
+    const amount  = num(t.amount);
+    const balance = num(t.balance_after);
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(t.date ?? '')) {
+      throw new Error(`Bad date "${t.date}" in: ${JSON.stringify(t)}`);
+    }
+    if (amount === null) {
+      throw new Error(`Bad amount "${t.amount}" in: ${JSON.stringify(t)}`);
+    }
+
+    // Integrity check: this statement prints a running balance, so each row
+    // must equal the previous balance plus the amount. This is the cheapest
+    // way to catch a silently truncated context window or a dropped row.
+    if (prevBalance !== null && balance !== null) {
+      const expected = cents(prevBalance) + cents(amount);
+      if (expected !== cents(balance)) {
+        throw new Error(
+          `Balance chain broke at ${t.date} "${t.description}": ` +
+          `expected ${expected / 100}, statement says ${balance}. ` +
+          `A row was probably dropped or misread.`
+        );
+      }
+    }
+    if (balance !== null) prevBalance = balance;
+
+    let description = String(t.description ?? '').trim();
+    if (STRIP_TRAILING_AMOUNT) {
+      description = description.replace(/\s+[\d,]+\.\d{2}$/, '').trim();
+    }
+
+    rows.push({
+      json: {
+        txn_date:        t.date,
+        description:     description.slice(0, 200),
+        amount,
+        direction:       amount < 0 ? 'debit' : 'credit',
+        currency:        CURRENCY,
+        balance_after:   balance,
+        category:        t.category ?? 'other',
+        account_last4:   ACCOUNT_LAST4,
+        statement_start: rows.length === 0 ? t.date : rows[0].json.txn_date,
+        statement_end:   null,   // backfilled below
+        source_file:     sourceFile,
+      },
+    });
+  }
+}
+
+const lastDate = rows.at(-1)?.json.txn_date ?? null;
+for (const r of rows) r.json.statement_end = lastDate;
+
+return rows;
+```
+
+Feed that straight into **Data Table → Insert row** with *Map Automatically* —
+the keys already match the column names in [section 1](#1-create-the-data-table-columns-first).
+
+Three notes on the sample output this was written against:
+
+- **`direction` is derived, not trusted.** The model labelled
+  `IBK FUND TFR TO A/C` as a credit and `PYMT FROM A/C` as a debit, which reads
+  backwards from the wording — but the balance chain confirms the *signs* are
+  right, so the wording is the bank's, not an error. Recomputing `direction`
+  from `sign(amount)` means the two can never disagree.
+- **Descriptions carry the amount twice.** `"SALE DEBIT 9.00"` happens because
+  the PDF-to-text step flattens the amount column into the description column.
+  `STRIP_TRAILING_AMOUNT` removes it; set it to `false` if you would rather
+  keep the raw text.
+- **`statement_start`/`statement_end` are inferred** from the first and last
+  transaction dates, which is not the same as the statement period. If you need
+  the real period, put the wrapper object back in the schema and let the model
+  read it off the header.
+
+---
+
 ## Gotchas on this rig
 
 These are specific to running E4B on the ZimaBlade, not generic n8n advice.
